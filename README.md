@@ -17,7 +17,7 @@ Otherwise, clone this repo, and follow the below specified commands
 
 ```python
 git clone 'https://github.com/iamstarstuff/maglimit'
-cd TCalc
+cd maglimit
 pip install -e .
 ```
 A list of dependencies is available in requirements.txt
