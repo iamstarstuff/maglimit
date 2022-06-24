@@ -24,4 +24,4 @@ pip install -e .
 A list of dependencies is available in requirements.txt
 
  ## Tutorials
- You can find the tutorial here: 'maglimit/docs/Tutorials/limiting_magnitude.ipynb'
+ You can find the tutorial here: ['maglimit/docs/Tutorials/limiting_magnitude.ipynb'](https://github.com/iamstarstuff/maglimit/blob/main/docs/Tutorials/limiting_magnitude.ipynb)
