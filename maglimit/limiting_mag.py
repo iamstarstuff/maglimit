@@ -9,7 +9,7 @@ from astroquery.vizier import Vizier
 
 
 class Telescope():
-    """Put in telescope parameters.
+    """Takes in telescope parameters.
 
     Args:
         aperture: cross section of primary element in mm
