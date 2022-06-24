@@ -11,6 +11,7 @@ Welcome to maglimit's documentation!
    :caption: Contents:
 
    maglimit.rst
+   tutorial.rst
 
 
 Indices and tables
