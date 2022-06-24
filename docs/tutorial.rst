@@ -8,4 +8,4 @@ Tutorial for maglimit package
 .. toctree::
    :maxdepth: 1
 
-   /Tutorials/limiting_magnitude.ipynb
+   Tutorials/limiting_magnitude.ipynb
