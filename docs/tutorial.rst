@@ -1,4 +1,4 @@
-.. _Tutorials:
+.. _Tutorial:
 
 Demo Notebook
 =============
@@ -7,5 +7,7 @@ Tutorial for maglimit package
 
 .. toctree::
    :maxdepth: 1
+   
+   Tutorial/limiting_magnitude.ipynb
 
-   limiting_magnitude.ipynb
+   
