@@ -2,6 +2,7 @@
 
 ![](https://img.shields.io/github/license/iamstarstuff/maglimit)
 ![](https://img.shields.io/pypi/v/maglimit)
+[![DOI](https://zenodo.org/badge/506751105.svg)](https://zenodo.org/badge/latestdoi/506751105)
 
 ## Installation
 
