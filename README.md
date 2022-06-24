@@ -3,6 +3,9 @@
 ![](https://img.shields.io/github/license/iamstarstuff/maglimit)
 ![](https://img.shields.io/pypi/v/maglimit)
 [![DOI](https://zenodo.org/badge/506751105.svg)](https://zenodo.org/badge/latestdoi/506751105)
+[![Documentation Status](https://readthedocs.org/projects/maglimit/badge/?version=latest)](https://maglimit.readthedocs.io/en/latest/?badge=latest)
+
+A package to determine observability of an astronomical object using telescope specifications.
 
 ## Installation
 
