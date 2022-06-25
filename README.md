@@ -1,5 +1,5 @@
 <p align="center">
-   <img src="maglimit_logo.png" />
+   <img src="maglimit_logo.png" width=50% height=50%/>
 </p>
 
 # maglimit
