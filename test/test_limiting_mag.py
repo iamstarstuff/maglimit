@@ -23,5 +23,9 @@ def test_focal_length():
     assert focal_length == pytest.approx(foc_len_exp, abs=1e-4)
 
 
-def test_magnification():
-    """Test to check """
+# def test_magnification():
+#     """Test to check the correctness of the magnification() function
+#     """
+#     foc_len = 450
+#     f_eyepiece = 10
+
