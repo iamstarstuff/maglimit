@@ -1,5 +1,6 @@
 # maglimit
 
+[![codeastro](https://img.shields.io/badge/Made%20at-Code/Astro-blueviolet.svg)](https://semaphorep.github.io/codeastro/)
 ![](https://img.shields.io/github/license/iamstarstuff/maglimit)
 ![](https://img.shields.io/pypi/v/maglimit)
 [![DOI](https://zenodo.org/badge/506751105.svg)](https://zenodo.org/badge/latestdoi/506751105)
@@ -9,7 +10,7 @@ A package to determine observability of an astronomical object using it's magnit
 The limiting magnitude of a telescope depends only on the aperture of mirror / lens.  
 
 
-$$L_{mag} = 2 + 5\log{D_0}$$
+### $$L_{mag} = 2 + 5\log{D_0}$$
 Where $D_0$ is the aperture.  
 
 
