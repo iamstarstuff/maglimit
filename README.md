@@ -38,5 +38,5 @@ A list of dependencies is available in requirements.txt
 
 
  ## Future Goals:
- - We use astroquery.ipac.ned catalogue to query the object by Messier and NGC name. 
+ - We use [astroquery.ipac.ned](https://astroquery.readthedocs.io/en/latest/ipac/ned/ned.html) catalogue to query the object by Messier and NGC name. 
     Further we plan to add cross-catalogue query feature.
