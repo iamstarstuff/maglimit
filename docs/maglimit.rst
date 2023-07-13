@@ -8,4 +8,4 @@ Telescope Functions
 .. autoclass:: Telescope
     :members:
 
-    .. automethods:: __init__
+    .. automethod:: __init__
