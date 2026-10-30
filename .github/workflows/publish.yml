@@ -1,0 +1,20 @@
+name: Publish to PyPI
+
+# Runs when a GitHub release is published. Uses PyPI trusted publishing,
+# so no API token is stored: configure the "pypi" environment and add this
+# workflow as a trusted publisher on https://pypi.org/manage/project/maglimit/settings/publishing/
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - run: uv build
+      - run: uv publish
