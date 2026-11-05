@@ -76,17 +76,71 @@ class Telescope:
         """
         return self.aperture*self.fstop
 
+    def _magnification(self, eyepiece):
+        """Unrounded magnification with an Eyepiece
+        """
+        return self.focal_length().to_value(u.mm)/eyepiece.focal_length
+
     def magnification(self, f_eyepiece):
         """To calculate magnification of the telescope
 
         Args:
-            f_eyepiece: focal length of eyepiece in mm. eg: 10, 25, 32 ...
+            f_eyepiece: focal length of eyepiece in mm (eg: 10, 25, 32 ...) or an Eyepiece
 
         Returns:
             x Magnification, rounded to 2 decimals
         """
-        mag = self.focal_length()/(f_eyepiece*u.mm)
-        return float(np.round(mag.to_value(u.dimensionless_unscaled), 2))
+        return round(self._magnification(_as_eyepiece(f_eyepiece)), 2)
+
+    def exit_pupil(self, eyepiece):
+        """Calculates the width of the beam of light leaving the eyepiece
+
+        Args:
+            eyepiece: focal length of eyepiece in mm or an Eyepiece
+
+        Returns:
+            Exit pupil in mm, rounded to 2 decimals
+        """
+        return round(_as_eyepiece(eyepiece).focal_length/self.fstop, 2)
+
+    def true_field(self, eyepiece):
+        """Calculates how much sky is visible through an eyepiece
+
+        Args:
+            eyepiece: focal length of eyepiece in mm or an Eyepiece
+
+        Returns:
+            True field of view in degrees, rounded to 2 decimals
+        """
+        eyepiece = _as_eyepiece(eyepiece)
+        return round(eyepiece.afov/self._magnification(eyepiece), 2)
+
+    def min_magnification(self, eye_pupil=7.0):
+        """Calculates the lowest magnification that uses the whole aperture
+
+        Args:
+            eye_pupil: diameter of the observer's dark-adapted pupil in mm
+
+        Returns:
+            Minimum useful magnification, rounded to 2 decimals
+        """
+        return round(self.aperture.to_value(u.mm)/eye_pupil, 2)
+
+    def max_magnification(self):
+        """Estimates the highest useful magnification, about twice the aperture in mm
+
+        Returns:
+            Maximum useful magnification, rounded to 2 decimals
+        """
+        return round(2*self.aperture.to_value(u.mm), 2)
+
+    def dawes_limit(self):
+        """Calculates the closest double star the telescope can separate
+
+        Returns:
+            Dawes limit in arcseconds, rounded to 2 decimals
+        """
+        return round(116/self.aperture.to_value(u.mm), 2)
 
     def lim_mag(self):
         """Calculates limiting magnitude of telescope, i.e the faintest object that can be observed
