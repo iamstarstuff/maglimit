@@ -126,6 +126,7 @@ class Telescope:
         Returns:
             Minimum useful magnification, rounded to 2 decimals
         """
+        _check_positive("eye pupil", eye_pupil)
         return round(self.aperture.to_value(u.mm)/eye_pupil, 2)
 
     def max_magnification(self):
@@ -168,6 +169,7 @@ class Telescope:
         Returns:
             Limiting magnitude, rounded to 2 decimals
         """
+        _check_positive("eye pupil", eye_pupil)
         throughput = self.transmission*(1 - self.obstruction**2)
         exit_pupil = eye_pupil
         if eyepiece is not None:
@@ -177,3 +179,42 @@ class Telescope:
         sky = site.sqm - 2.5*math.log10(throughput*(exit_pupil/eye_pupil)**2)
         gain = 2.5*math.log10(throughput*used_aperture**2/eye_pupil**2)
         return round(naked_eye_limit(sky) + gain, 2)
+
+    def summary(self, site=None, eye_pupil=7.0):
+        """Collects the telescope's numbers as plain data
+
+        Args:
+            site: Site the telescope is used at. If None, sky values are None
+            eye_pupil: diameter of the observer's dark-adapted pupil in mm
+
+        Returns:
+            Dictionary of plain values, with one entry per eyepiece under "eyepieces"
+        """
+        eyepieces = []
+        for eyepiece in self.eyepieces:
+            notes = []
+            if eyepiece.focal_length/self.fstop > eye_pupil:
+                notes.append("exit pupil larger than your eye")
+            if self._magnification(eyepiece) > self.max_magnification():
+                notes.append("above max useful magnification")
+            eyepieces.append({
+                "focal_length_mm": eyepiece.focal_length,
+                "afov_deg": eyepiece.afov,
+                "magnification": self.magnification(eyepiece),
+                "exit_pupil_mm": self.exit_pupil(eyepiece),
+                "true_field_deg": self.true_field(eyepiece),
+                "sky_star_limit": site and self.sky_lim_mag(site, eyepiece, eye_pupil),
+                "notes": notes,
+            })
+        return {
+            "aperture_mm": self.aperture.to_value(u.mm),
+            "fstop": self.fstop,
+            "focal_length_mm": self.focal_length().to_value(u.mm),
+            "star_limit": self.lim_mag(),
+            "sky_star_limit": site and self.sky_lim_mag(site, eye_pupil=eye_pupil),
+            "sky_sqm": site and site.sqm,
+            "dawes_limit_arcsec": self.dawes_limit(),
+            "min_magnification": self.min_magnification(eye_pupil),
+            "max_magnification": self.max_magnification(),
+            "eyepieces": eyepieces,
+        }

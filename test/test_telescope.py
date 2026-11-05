@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from maglimit.site import Site
@@ -127,3 +129,34 @@ def test_lim_mag_is_unchanged():
     """Test that lim_mag() still depends only on the aperture.
     """
     assert Telescope(200, 5, obstruction=0.3).lim_mag() == pytest.approx(13.51)
+
+
+def test_summary_is_plain_data():
+    """Test that the summary holds the right values and can be saved as JSON.
+    """
+    summary = Telescope(200, 5, eyepieces=[32, 2]).summary(Site(sqm=20))
+    json.dumps(summary)
+    assert summary["focal_length_mm"] == 1000
+    assert summary["star_limit"] == pytest.approx(13.51)
+    assert summary["eyepieces"][0]["exit_pupil_mm"] == pytest.approx(6.4)
+    assert summary["eyepieces"][1]["notes"] == ["above max useful magnification"]
+
+
+def test_summary_flags_large_exit_pupil():
+    """Test the note for an exit pupil wider than the eye, with no site given.
+    """
+    summary = Telescope(200, 5, eyepieces=[40]).summary()
+    assert summary["eyepieces"][0]["notes"] == ["exit pupil larger than your eye"]
+    assert summary["sky_star_limit"] is None
+    assert summary["eyepieces"][0]["sky_star_limit"] is None
+
+
+@pytest.mark.parametrize("eye_pupil", [0, -1, float("nan")])
+def test_invalid_eye_pupil(eye_pupil):
+    """Test that an impossible eye pupil is rejected.
+    """
+    scope = Telescope(200, 5)
+    with pytest.raises(ValueError):
+        scope.min_magnification(eye_pupil)
+    with pytest.raises(ValueError):
+        scope.sky_lim_mag(Site(sqm=20), eye_pupil=eye_pupil)

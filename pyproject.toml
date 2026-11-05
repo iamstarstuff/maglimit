@@ -28,6 +28,9 @@ Homepage = "https://github.com/iamstarstuff/maglimit"
 Documentation = "https://maglimit.readthedocs.io"
 Issues = "https://github.com/iamstarstuff/maglimit/issues"
 
+[project.scripts]
+maglimit = "maglimit.cli:main"
+
 [dependency-groups]
 dev = [
     "pytest>=8",
