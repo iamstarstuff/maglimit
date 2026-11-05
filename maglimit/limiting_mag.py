@@ -2,55 +2,7 @@ import astropy.units as u
 import numpy as np
 from astroquery.ipac.ned import Ned
 
-
-class Telescope:
-    """Takes in telescope parameters.
-
-    Args:
-        aperture: cross section of primary element in mm
-        fstop: ratio of focal length and aperture.
-
-    Returns:
-        Telescope object
-
-    Raises:
-        ValueError: if aperture or fstop is not positive
-    """
-    def __init__(self, aperture, fstop):
-        if aperture <= 0:
-            raise ValueError(f"aperture must be positive, got {aperture}")
-        if fstop <= 0:
-            raise ValueError(f"fstop must be positive, got {fstop}")
-        self.aperture = aperture*u.mm
-        self.fstop = fstop
-
-    def focal_length(self):
-        """Calculates focal length using aperture and fstop values from Telescope class
-
-        Returns:
-            Focal length of telescope in mm.
-        """
-        return self.aperture*self.fstop
-
-    def magnification(self, f_eyepiece):
-        """To calculate magnification of the telescope
-
-        Args:
-            f_eyepiece: focal length of eyepiece in mm. eg: 10, 25, 32 ...
-
-        Returns:
-            x Magnification, rounded to 2 decimals
-        """
-        mag = self.focal_length()/(f_eyepiece*u.mm)
-        return float(np.round(mag.to_value(u.dimensionless_unscaled), 2))
-
-    def lim_mag(self):
-        """Calculates limiting magnitude of telescope, i.e the faintest object that can be observed
-
-        Returns:
-            Limiting magnitude of telescope
-        """
-        return float(np.round(2 + 5*np.log10(self.aperture.to_value(u.mm)), 2))
+from .telescope import Telescope  # noqa: F401  (kept importable from here since v0.1)
 
 
 def object_magnitude(obj):
