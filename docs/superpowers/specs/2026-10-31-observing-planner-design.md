@@ -1,4 +1,4 @@
-# maglimit planner — draft design
+# maglimit planner — design
 
 **Status:** approved by Pratik on 2026-11-05. Written 2026-10-31 on top of the v0.1.0
 modernization (PR #6), revised 2026-11-05 with Pratik's first round of answers. Everything
