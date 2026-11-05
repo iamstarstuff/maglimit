@@ -3,5 +3,5 @@
 Telescope Functions
 ===================
 
-.. automodule:: limiting_mag
+.. automodule:: maglimit.limiting_mag
     :members:

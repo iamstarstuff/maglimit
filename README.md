@@ -1,5 +1,5 @@
 <p align="center">
-   <img src="maglimit_logo.png" width=50% height=50%/>
+   <img src="https://raw.githubusercontent.com/iamstarstuff/maglimit/main/maglimit_logo.png" width=50% height=50%/>
 </p>
 
 # maglimit
@@ -8,9 +8,10 @@
 ![](https://img.shields.io/github/license/iamstarstuff/maglimit)
 [![pypi](https://img.shields.io/pypi/v/maglimit)](https://pypi.org/project/maglimit/)
 [![DOI](https://zenodo.org/badge/506751105.svg)](https://zenodo.org/badge/latestdoi/506751105)
+[![CI](https://github.com/iamstarstuff/maglimit/actions/workflows/ci.yml/badge.svg)](https://github.com/iamstarstuff/maglimit/actions/workflows/ci.yml)
 [![Documentation Status](https://readthedocs.org/projects/maglimit/badge/?version=latest)](https://maglimit.readthedocs.io/en/latest/?badge=latest)
 
-A package to determine observability of an astronomical object using it's magnitude and telescope's limiting magnitude.
+A package to determine observability of an astronomical object using its magnitude and telescope's limiting magnitude.
 The limiting magnitude of a telescope depends only on the aperture of mirror / lens.  
 
 
@@ -21,25 +22,44 @@ Where $D_0$ is the aperture.
 
 ## Installation
 
-### Using `pip`
-The package is installable on Python 3.x. To install the package,
+Requires Python 3.10+.
 
-```python
+```bash
 pip install maglimit
 ```
 
-### Using `GitHub`
-Otherwise, clone this repo, and follow the below specified commands
+or, in a uv project:
+
+```bash
+uv add maglimit
+```
+
+## Quick start
 
 ```python
-git clone 'https://github.com/iamstarstuff/maglimit'
-cd maglimit
-pip install -e .
+import maglimit as ml
+
+scope = ml.Telescope(aperture=100, fstop=4.5)   # 100 mm f/4.5
+scope.lim_mag()                                  # 12.0
+scope.magnification(f_eyepiece=25)               # 18.0
+ml.is_object_observable("M31", scope.lim_mag())  # True (queries NED)
+ml.smallest_scope("NGC 244", fs=4.5)             # (13.83, <Quantity 232.27 mm>, <Quantity 1045.22 mm>)
 ```
-A list of dependencies is available in requirements.txt
+
+## Development
+
+```bash
+git clone https://github.com/iamstarstuff/maglimit
+cd maglimit
+uv sync --all-groups
+uv run pytest                     # add -m "not network" to skip the live NED test
+uv run sphinx-build -b html docs docs/_build/html
+```
+
+Releases are published to PyPI from GitHub releases via trusted publishing (see `.github/workflows/publish.yml`).
 
  ## Tutorials
- You can find the tutorial here: ['maglimit/docs/Tutorials/limiting_magnitude.ipynb'](https://github.com/iamstarstuff/maglimit/blob/main/docs/Tutorial/limiting_magnitude.ipynb)
+ You can find the tutorial here: [docs/Tutorial/limiting_magnitude.ipynb](https://github.com/iamstarstuff/maglimit/blob/main/docs/Tutorial/limiting_magnitude.ipynb)
 
 
  ## Future Goals:
