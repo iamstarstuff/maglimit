@@ -16,7 +16,7 @@ As a rule of thumb, the limiting magnitude of a telescope depends on the apertur
 
 
 $$L_{mag} = 2 + 5\log{D_0}$$
-Where $D_0$ is the aperture in mm. `lim_mag()` uses this formula and ignores the sky; `sky_lim_mag()` also takes sky brightness and the eyepiece into account.
+Where $D_0$ is the aperture in mm. `lim_mag()` uses this formula and ignores the sky; `sky_lim_mag()` also takes sky brightness and the eyepiece into account. `sky_lim_mag()` is a simplified estimate that hasn't been calibrated against real observations yet, and eyes vary, so treat its result as a guide. With no eyepiece, it assumes low power, where the exit pupil matches your eye. It can come out above the rule of thumb, because higher magnification darkens the sky background.
 
 
 

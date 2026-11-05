@@ -23,7 +23,7 @@ def test_scope_without_eyepieces_or_sky(capsys):
     """
     assert main(["scope", "--aperture", "100", "--fstop", "4.5"]) == 0
     out = capsys.readouterr().out
-    assert "12.0" in out
+    assert "Rule-of-thumb star limit: 12.00" in out
     assert "Eyepiece" not in out
 
 

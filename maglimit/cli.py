@@ -55,7 +55,7 @@ def _format_summary(summary, site):
     lines = [
         f"{summary['aperture_mm']:g} mm f/{summary['fstop']:g}, focal length "
         + f"{summary['focal_length_mm']:g} mm",
-        f"Star limit (aperture only): {summary['star_limit']:.2f}",
+        f"Rule-of-thumb star limit: {summary['star_limit']:.2f}",
     ]
     if site is not None:
         lines.append(f"Sky: {_sky_label(site)}")
