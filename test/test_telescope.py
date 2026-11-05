@@ -1,5 +1,6 @@
 import json
 
+import numpy as np
 import pytest
 
 from maglimit.site import Site
@@ -151,7 +152,7 @@ def test_summary_flags_large_exit_pupil():
     assert summary["eyepieces"][0]["sky_star_limit"] is None
 
 
-@pytest.mark.parametrize("eye_pupil", [0, -1, float("nan")])
+@pytest.mark.parametrize("eye_pupil", [0, -1, float("nan"), 0.7, 70])
 def test_invalid_eye_pupil(eye_pupil):
     """Test that an impossible eye pupil is rejected.
     """
@@ -160,3 +161,37 @@ def test_invalid_eye_pupil(eye_pupil):
         scope.min_magnification(eye_pupil)
     with pytest.raises(ValueError):
         scope.sky_lim_mag(Site(sqm=20), eye_pupil=eye_pupil)
+
+
+def test_eye_pupil_does_not_matter_when_exit_pupil_fits():
+    """Test that all the light reaches any eye wider than the exit pupil.
+    """
+    scope, site = Telescope(200, 5), Site(sqm=20)
+    assert [scope.sky_lim_mag(site, 10, p) for p in (3, 5, 7)] == [14.05, 14.05, 14.05]
+
+
+def test_smaller_eye_pupil_loses_light_from_wide_exit_pupil():
+    """Test that a smaller eye gets a lower limit when the exit pupil overfills it.
+    """
+    scope, site = Telescope(200, 5), Site(sqm=20)
+    assert [scope.sky_lim_mag(site, 40, p) for p in (3, 5, 7)] == [11.57, 12.12, 12.40]
+    assert [scope.sky_lim_mag(site, 32, p) for p in (3, 5, 7)] == [12.05, 12.60, 12.82]
+
+
+def test_methods_return_plain_floats():
+    """Test that numeric results are plain floats, not numpy types.
+    """
+    scope, site = Telescope(200, 5), Site(sqm=20)
+    results = [
+        scope.magnification(25), scope.exit_pupil(25), scope.true_field(25),
+        scope.min_magnification(), scope.max_magnification(), scope.dawes_limit(),
+        scope.lim_mag(), scope.sky_lim_mag(site), site.nelm,
+    ]
+    assert [type(result) for result in results] == [float]*len(results)
+
+
+def test_summary_with_numpy_inputs_is_json_safe():
+    """Test that values from a numpy sweep still give a JSON-ready summary.
+    """
+    scope = Telescope(np.float32(200), np.int64(5), [np.int64(10)])
+    json.dumps(scope.summary(Site(sqm=np.float32(20))))

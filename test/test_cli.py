@@ -41,6 +41,7 @@ def test_scope_json(capsys):
     ["--aperture", "200", "--fstop", "5", "--bortle", "12"],
     ["--aperture", "nan", "--fstop", "5"],
     ["--aperture", "200", "--fstop", "5", "--eye-pupil", "0"],
+    ["--aperture", "200", "--fstop", "5", "--eye-pupil", "70"],
 ])
 def test_bad_input_exits_cleanly(args, capsys):
     """Test that bad values give a one-line error and exit code 2.

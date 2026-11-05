@@ -6,12 +6,22 @@ import numpy as np
 
 from .site import naked_eye_limit
 
+# naked_eye_limit() describes a fully dark-adapted eye with a pupil of this size in mm
+NAKED_EYE_PUPIL = 7.0
+
 
 def _check_positive(name, value):
     """Raises ValueError unless value is a positive, finite number
     """
     if not (math.isfinite(value) and value > 0):
         raise ValueError(f"{name} must be positive, got {value}")
+
+
+def _check_eye_pupil(eye_pupil):
+    """Raises ValueError unless eye_pupil is a plausible size for a human pupil in mm
+    """
+    if not 1 <= eye_pupil <= 10:
+        raise ValueError(f"eye pupil must be from 1 to 10 mm, got {eye_pupil}")
 
 
 @dataclass(frozen=True)
@@ -33,6 +43,8 @@ class Eyepiece:
         _check_positive("apparent field", self.afov)
         if self.afov > 180:
             raise ValueError(f"apparent field must be at most 180 degrees, got {self.afov}")
+        object.__setattr__(self, "focal_length", float(self.focal_length))
+        object.__setattr__(self, "afov", float(self.afov))
 
 
 def _as_eyepiece(eyepiece):
@@ -64,11 +76,11 @@ class Telescope:
             raise ValueError(f"obstruction must be from 0 up to 1, got {obstruction}")
         if not 0 < transmission <= 1:
             raise ValueError(f"transmission must be above 0 and at most 1, got {transmission}")
-        self.aperture = aperture*u.mm
-        self.fstop = fstop
+        self.aperture = float(aperture)*u.mm
+        self.fstop = float(fstop)
         self.eyepieces = tuple(_as_eyepiece(eyepiece) for eyepiece in eyepieces)
-        self.obstruction = obstruction
-        self.transmission = transmission
+        self.obstruction = float(obstruction)
+        self.transmission = float(transmission)
 
     def focal_length(self):
         """Calculates focal length using aperture and fstop values from Telescope class
@@ -78,10 +90,20 @@ class Telescope:
         """
         return self.aperture*self.fstop
 
+    def _aperture_mm(self):
+        """Aperture as a plain float in mm
+        """
+        return float(self.aperture.to_value(u.mm))
+
+    def _focal_length_mm(self):
+        """Focal length as a plain float in mm
+        """
+        return float(self.focal_length().to_value(u.mm))
+
     def _magnification(self, eyepiece):
         """Unrounded magnification with an Eyepiece
         """
-        return self.focal_length().to_value(u.mm)/eyepiece.focal_length
+        return self._focal_length_mm()/eyepiece.focal_length
 
     def magnification(self, f_eyepiece):
         """To calculate magnification of the telescope
@@ -126,8 +148,8 @@ class Telescope:
         Returns:
             Minimum useful magnification, rounded to 2 decimals
         """
-        _check_positive("eye pupil", eye_pupil)
-        return round(self.aperture.to_value(u.mm)/eye_pupil, 2)
+        _check_eye_pupil(eye_pupil)
+        return round(self._aperture_mm()/eye_pupil, 2)
 
     def max_magnification(self):
         """Estimates the highest useful magnification, about twice the aperture in mm
@@ -135,7 +157,7 @@ class Telescope:
         Returns:
             Maximum useful magnification, rounded to 2 decimals
         """
-        return round(2*self.aperture.to_value(u.mm), 2)
+        return round(2*self._aperture_mm(), 2)
 
     def dawes_limit(self):
         """Calculates the closest double star the telescope can separate
@@ -143,7 +165,7 @@ class Telescope:
         Returns:
             Dawes limit in arcseconds, rounded to 2 decimals
         """
-        return round(116/self.aperture.to_value(u.mm), 2)
+        return round(116/self._aperture_mm(), 2)
 
     def lim_mag(self):
         """Calculates limiting magnitude of telescope, i.e the faintest object that can be observed
@@ -151,7 +173,7 @@ class Telescope:
         Returns:
             Limiting magnitude of telescope
         """
-        return float(np.round(2 + 5*np.log10(self.aperture.to_value(u.mm)), 2))
+        return float(np.round(2 + 5*np.log10(self._aperture_mm()), 2))
 
     def sky_lim_mag(self, site, eyepiece=None, eye_pupil=7.0):
         """Estimates the faintest star visible from a site, taking the sky into account
@@ -169,15 +191,15 @@ class Telescope:
         Returns:
             Limiting magnitude, rounded to 2 decimals
         """
-        _check_positive("eye pupil", eye_pupil)
+        _check_eye_pupil(eye_pupil)
         throughput = self.transmission*(1 - self.obstruction**2)
         exit_pupil = eye_pupil
         if eyepiece is not None:
             exit_pupil = _as_eyepiece(eyepiece).focal_length/self.fstop
-        used_aperture = self.aperture.to_value(u.mm)*min(1, eye_pupil/exit_pupil)
+        used_aperture = self._aperture_mm()*min(1, eye_pupil/exit_pupil)
         exit_pupil = min(exit_pupil, eye_pupil)
-        sky = site.sqm - 2.5*math.log10(throughput*(exit_pupil/eye_pupil)**2)
-        gain = 2.5*math.log10(throughput*used_aperture**2/eye_pupil**2)
+        sky = site.sqm - 2.5*math.log10(throughput*(exit_pupil/NAKED_EYE_PUPIL)**2)
+        gain = 2.5*math.log10(throughput*used_aperture**2/NAKED_EYE_PUPIL**2)
         return round(naked_eye_limit(sky) + gain, 2)
 
     def summary(self, site=None, eye_pupil=7.0):
@@ -207,12 +229,12 @@ class Telescope:
                 "notes": notes,
             })
         return {
-            "aperture_mm": self.aperture.to_value(u.mm),
+            "aperture_mm": self._aperture_mm(),
             "fstop": self.fstop,
-            "focal_length_mm": self.focal_length().to_value(u.mm),
+            "focal_length_mm": self._focal_length_mm(),
             "star_limit": self.lim_mag(),
             "sky_star_limit": site and self.sky_lim_mag(site, eye_pupil=eye_pupil),
-            "sky_sqm": site and site.sqm,
+            "sky_sqm": site and float(site.sqm),
             "dawes_limit_arcsec": self.dawes_limit(),
             "min_magnification": self.min_magnification(eye_pupil),
             "max_magnification": self.max_magnification(),
