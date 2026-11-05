@@ -12,11 +12,11 @@
 [![Documentation Status](https://readthedocs.org/projects/maglimit/badge/?version=latest)](https://maglimit.readthedocs.io/en/latest/?badge=latest)
 
 A package to determine observability of an astronomical object using its magnitude and telescope's limiting magnitude.
-The limiting magnitude of a telescope depends only on the aperture of mirror / lens.  
+As a rule of thumb, the limiting magnitude of a telescope depends on the aperture of mirror / lens:
 
 
 $$L_{mag} = 2 + 5\log{D_0}$$
-Where $D_0$ is the aperture.  
+Where $D_0$ is the aperture in mm. `lim_mag()` uses this formula and ignores the sky; `sky_lim_mag()` also takes sky brightness and the eyepiece into account. `sky_lim_mag()` is a simplified estimate that hasn't been calibrated against real observations yet, and eyes vary, so treat its result as a guide. With no eyepiece, it assumes low power, where the exit pupil matches your eye. It can come out above the rule of thumb, because higher magnification darkens the sky background.
 
 
 
@@ -44,7 +44,21 @@ scope.lim_mag()                                  # 12.0
 scope.magnification(f_eyepiece=25)               # 18.0
 ml.is_object_observable("M31", scope.lim_mag())  # True (queries NED)
 ml.smallest_scope("NGC 244", fs=4.5)             # (13.83, <Quantity 232.27 mm>, <Quantity 1045.22 mm>)
+
+site = ml.Site(bortle=5)                         # or sqm=20.1
+scope.sky_lim_mag(site)                          # 11.19, at low power
+scope.sky_lim_mag(site, eyepiece=10)             # 12.46
+scope.exit_pupil(25)                             # 5.56 (mm)
+scope.dawes_limit()                              # 1.16 (arcseconds)
 ```
+
+From the command line, for a summary of a telescope and its eyepieces:
+
+```bash
+maglimit scope --aperture 200 --fstop 5 --eyepieces 32,25,10 --bortle 5
+```
+
+Add `--json` to get the same numbers as JSON.
 
 ## Development
 

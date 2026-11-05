@@ -1,6 +1,6 @@
 [project]
 name = "maglimit"
-version = "0.1.0"
+version = "0.2.0"
 description = "Determine whether an astronomical object is observable with a given telescope"
 readme = "README.md"
 license = "MIT"
@@ -27,6 +27,9 @@ classifiers = [
 Homepage = "https://github.com/iamstarstuff/maglimit"
 Documentation = "https://maglimit.readthedocs.io"
 Issues = "https://github.com/iamstarstuff/maglimit/issues"
+
+[project.scripts]
+maglimit = "maglimit.cli:main"
 
 [dependency-groups]
 dev = [
