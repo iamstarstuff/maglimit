@@ -4,6 +4,8 @@ from dataclasses import dataclass
 import astropy.units as u
 import numpy as np
 
+from .site import naked_eye_limit
+
 
 def _check_positive(name, value):
     """Raises ValueError unless value is a positive, finite number
@@ -149,3 +151,29 @@ class Telescope:
             Limiting magnitude of telescope
         """
         return float(np.round(2 + 5*np.log10(self.aperture.to_value(u.mm)), 2))
+
+    def sky_lim_mag(self, site, eyepiece=None, eye_pupil=7.0):
+        """Estimates the faintest star visible from a site, taking the sky into account
+
+        A simplified model after Schaefer (1990). The eyepiece dims the sky background,
+        so the eye works as if under a darker sky, and the star gains all the light the
+        aperture collects. Light in an exit pupil wider than the eye is lost.
+
+        Args:
+            site: Site the telescope is used at
+            eyepiece: focal length of eyepiece in mm or an Eyepiece. If None, assumes low
+                power, with the exit pupil matching the eye
+            eye_pupil: diameter of the observer's dark-adapted pupil in mm
+
+        Returns:
+            Limiting magnitude, rounded to 2 decimals
+        """
+        throughput = self.transmission*(1 - self.obstruction**2)
+        exit_pupil = eye_pupil
+        if eyepiece is not None:
+            exit_pupil = _as_eyepiece(eyepiece).focal_length/self.fstop
+        used_aperture = self.aperture.to_value(u.mm)*min(1, eye_pupil/exit_pupil)
+        exit_pupil = min(exit_pupil, eye_pupil)
+        sky = site.sqm - 2.5*math.log10(throughput*(exit_pupil/eye_pupil)**2)
+        gain = 2.5*math.log10(throughput*used_aperture**2/eye_pupil**2)
+        return round(naked_eye_limit(sky) + gain, 2)
