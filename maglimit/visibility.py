@@ -8,15 +8,16 @@ dark-adapted (scotopic) eye, extended to telescopic viewing. Equation numbers
 in the docstrings refer to the paper. Everything here takes and returns plain
 numbers, so the module ports directly to other languages.
 
-Shared arguments:
-    aperture: telescope aperture in mm
-    magnification: telescope magnification
-    sqm: sky brightness in mag/arcsec²
-    eye_pupil: the paper's pupil diameter in mm. It is fitted together with the
-        field factor, so it isn't a free observer setting; public code passes 7.0
-        and models a smaller eye with used_aperture()
-    throughput: fraction of light the telescope passes (1/Ft in the paper)
-    field_factor: Crumey's F, the factor between laboratory and field thresholds
+Arguments shared by the functions:
+
+- aperture: telescope aperture in mm
+- magnification: telescope magnification
+- sqm: sky brightness in mag/arcsec²
+- eye_pupil: the paper's pupil diameter in mm. It is fitted together with the
+  field factor, so it isn't a free observer setting; public code passes 7.0
+  and models a smaller eye with used_aperture()
+- throughput: fraction of light the telescope passes (1/Ft in the paper)
+- field_factor: Crumey's F, the factor between laboratory and field thresholds
 """
 import math
 
