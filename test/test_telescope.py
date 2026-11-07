@@ -209,3 +209,11 @@ def test_summary_with_numpy_inputs_is_json_safe():
     """
     scope = Telescope(np.float32(200), np.int64(5), [np.int64(10)])
     json.dumps(scope.summary(Site(sqm=np.float32(20))))
+
+
+def test_smaller_eye_pupil_never_raises_low_power_limit():
+    """Test that with no eyepiece given, a smaller eye never sees fainter stars.
+    """
+    scope, site = Telescope(200, 5), Site(sqm=21.5)
+    limits = [scope.sky_lim_mag(site, eye_pupil=p) for p in (1, 3, 5, 7, 10)]
+    assert limits == sorted(limits)

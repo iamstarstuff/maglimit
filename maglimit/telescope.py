@@ -193,7 +193,7 @@ class Telescope:
         Args:
             site: Site the telescope is used at
             eyepiece: focal length of eyepiece in mm or an Eyepiece. If None, assumes low
-                power, with the exit pupil matching the eye
+                power, with a 7 mm exit pupil
             eye_pupil: diameter of the observer's dark-adapted pupil in mm
             field_factor: Crumey's factor between laboratory and field thresholds
 
@@ -203,7 +203,8 @@ class Telescope:
         _check_eye_pupil(eye_pupil)
         aperture = self._aperture_mm()
         if eyepiece is None:
-            magnification = aperture/eye_pupil
+            # Low power: a 7 mm exit pupil for every observer, so a smaller eye only loses light
+            magnification = aperture/NAKED_EYE_PUPIL
         else:
             magnification = self._magnification(_as_eyepiece(eyepiece))
         limit = star_limit(used_aperture(aperture, magnification, eye_pupil), magnification,

@@ -85,3 +85,9 @@ def test_catalogue_is_bundled_and_substantial():
     """Test that the bundled catalogue holds the NGC and IC objects.
     """
     assert len(load_catalogue()) > 12000
+
+
+def test_shared_common_name_prefers_messier_object():
+    """Test that a common name shared by two objects finds the Messier one.
+    """
+    assert find_object("Eagle Nebula").messier == 16

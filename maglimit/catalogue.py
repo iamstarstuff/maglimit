@@ -86,9 +86,12 @@ def _load():
             )
             objects.append(obj)
             aliases.append(_split(row["aliases"]))
-    # An object's own name wins over another object's cross-reference
+    # An object's own name wins over another object's cross-reference. When objects
+    # share an alias, a Messier object wins, then the larger one.
     index = {normalise(obj.name): obj for obj in objects}
-    for obj, names in zip(objects, aliases):
+    ranked = sorted(zip(objects, aliases),
+                    key=lambda pair: (pair[0].messier is None, -(pair[0].major_axis or 0)))
+    for obj, names in ranked:
         for alias in names:
             index.setdefault(alias, obj)
     return tuple(objects), index
