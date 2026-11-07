@@ -1,6 +1,7 @@
 import argparse
 import json
 
+from .planner import explain
 from .site import Site, bortle_to_sqm
 from .telescope import Eyepiece, Telescope
 
@@ -83,6 +84,64 @@ def _scope(args):
     print(json.dumps(summary, indent=2) if args.json else _format_summary(summary, site))
 
 
+def _format_check(result, site):
+    """Formats an explain() result as text for the terminal
+    """
+    obj = result["object"]
+    name = obj["name"]
+    if obj["messier"] is not None and name != f"M{obj['messier']}":
+        name = f"M{obj['messier']} ({name})"
+    common = f", {obj['common_names'][0]}" if obj["common_names"] else ""
+    lines = [f"{name}{common}, type {obj['type']}, magnitude {obj['magnitude']:g}"]
+    lines.append(f"Verdict: {result['verdict']} (seen as {result['seen_as']})")
+    if result["surface_brightness"] is None:
+        lines.append("Surface brightness: unknown, no size in the catalogue")
+    else:
+        lines.append(f"Surface brightness: {result['surface_brightness']:.2f} mag/arcsec^2")
+    sky = f"Sky: {result['sky_sqm']:.1f} mag/arcsec^2"
+    if site.bortle is not None and site.sqm == bortle_to_sqm(site.bortle):
+        sky += f", typical for Bortle {site.bortle}"
+    lines.append(sky)
+    lines.append(f"Margin above threshold: {result['margin']:+.2f} mag")
+    power = f"{result['best_magnification']:g}x, exit pupil {result['best_exit_pupil']:g} mm"
+    if result["best_eyepiece"] is not None:
+        power = f"{result['best_eyepiece']:g} mm eyepiece, {power}"
+    lines.append(f"Best view: {power}")
+    if result["confidence"] == "low":
+        lines.append("Low confidence: " + "; ".join(result["reasons"]))
+    lines.append("Assumes: " + "; ".join(result["assumes"]))
+    return "\n".join(lines)
+
+
+def _check(args):
+    """Runs the check command
+    """
+    site = Site(bortle=args.bortle, sqm=args.sqm)
+    eyepieces = [Eyepiece(focal_length, args.afov) for focal_length in args.eyepieces]
+    scope = Telescope(args.aperture, args.fstop, eyepieces, args.obstruction)
+    result = explain(args.object, scope, site, args.eye_pupil)
+    print(json.dumps(result, indent=2) if args.json else _format_check(result, site))
+
+
+def _add_scope_arguments(parser, sky_required):
+    """Adds the telescope, sky and output arguments shared by the commands
+    """
+    parser.add_argument("--aperture", type=float, required=True, help="aperture in mm")
+    parser.add_argument("--fstop", type=float, required=True, help="focal ratio")
+    parser.add_argument("--eyepieces", type=_focal_lengths, default=[],
+                        help="eyepiece focal lengths in mm, eg: 32,25,10")
+    parser.add_argument("--afov", type=float, default=52.0,
+                        help="apparent field of the eyepieces in degrees (default: 52)")
+    parser.add_argument("--obstruction", type=float, default=0.0,
+                        help="central obstruction as a fraction of the aperture (default: 0)")
+    sky = parser.add_mutually_exclusive_group(required=True) if sky_required else parser
+    sky.add_argument("--bortle", type=int, help="sky darkness, Bortle class from 1 to 9")
+    sky.add_argument("--sqm", type=float, help="sky darkness, measured in mag/arcsec^2")
+    parser.add_argument("--eye-pupil", type=float, default=7.0,
+                        help="dark-adapted eye pupil in mm (default: 7)")
+    parser.add_argument("--json", action="store_true", help="print the result as JSON")
+
+
 def main(argv=None):
     """Runs the maglimit command line tool
 
@@ -96,20 +155,13 @@ def main(argv=None):
     commands = parser.add_subparsers(dest="command", required=True)
 
     scope = commands.add_parser("scope", help="summarise a telescope and its eyepieces")
-    scope.add_argument("--aperture", type=float, required=True, help="aperture in mm")
-    scope.add_argument("--fstop", type=float, required=True, help="focal ratio")
-    scope.add_argument("--eyepieces", type=_focal_lengths, default=[],
-                       help="eyepiece focal lengths in mm, eg: 32,25,10")
-    scope.add_argument("--afov", type=float, default=52.0,
-                       help="apparent field of the eyepieces in degrees (default: 52)")
-    scope.add_argument("--obstruction", type=float, default=0.0,
-                       help="central obstruction as a fraction of the aperture (default: 0)")
-    scope.add_argument("--bortle", type=int, help="sky darkness, Bortle class from 1 to 9")
-    scope.add_argument("--sqm", type=float, help="sky darkness, measured in mag/arcsec^2")
-    scope.add_argument("--eye-pupil", type=float, default=7.0,
-                       help="dark-adapted eye pupil in mm (default: 7)")
-    scope.add_argument("--json", action="store_true", help="print the summary as JSON")
+    _add_scope_arguments(scope, sky_required=False)
     scope.set_defaults(run=_scope, parser=scope)
+
+    check = commands.add_parser("check", help="say how well an object can be seen")
+    check.add_argument("object", help="object name, eg: M33, 'NGC 7000' or 'Ring Nebula'")
+    _add_scope_arguments(check, sky_required=True)
+    check.set_defaults(run=_check, parser=check)
 
     args = parser.parse_args(argv)
     try:
