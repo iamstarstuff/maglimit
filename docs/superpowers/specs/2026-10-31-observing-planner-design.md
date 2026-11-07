@@ -165,7 +165,7 @@ lat/lon, local time zone guessed from the system with `--tz` to override.
   the repo to regenerate it from upstream.
 - Name lookup accepts `M31`, `NGC 224`, `NGC224`, `Andromeda Galaxy`.
 - Missing data is common (many objects have B but no V, no minor axis, etc.). The model
-  needs explicit fallback rules (e.g. V ≈ B − 0.8 for galaxies, round object if no minor
+  needs explicit fallback rules (V ≈ B − 0.76 for galaxies, the median B−V of OpenNGC galaxies, round object if no minor
   axis) and a flag in the output when a fallback was used.
 - NED stays available as an optional live lookup for objects outside the catalogue.
 - OpenNGC is **CC-BY-SA-4.0** while maglimit is MIT. Decided: bundle it with clear
@@ -189,6 +189,15 @@ dependency; astroplan is an option but not needed for this.
   minute-level accuracy is plenty here, and this keeps "offline" true.
 
 ### 5.4 The visibility model (the core)
+
+> **Changed on 2026-11-06 (release 0.3 plan):** the model is Crumey (2014), "Human
+> contrast threshold and astronomical visibility", MNRAS 442, 2600 (arXiv:1405.4209),
+> instead of a lookup in Clark's Blackwell tables. It is a published closed-form fit to the
+> same Blackwell (1946) data, covers point sources and extended objects through a telescope,
+> and was tested against Bowen's measured limits and Herschel's discoveries. A formula needs
+> no threshold table, so `blackwell.csv` is dropped and the TypeScript port is a few lines.
+> The sky-aware star limit (a) uses the same model, replacing the 0.2 Schaefer-style
+> estimate. The text below is the original design, kept for the reasoning.
 
 Two cases, because stars and extended objects are seen differently.
 
@@ -245,7 +254,7 @@ maglimit/
   cli.py               `maglimit` command (argparse; no extra dependency)
   data/
     openngc.csv        trimmed catalogue + LICENSE-OpenNGC
-    blackwell.csv      contrast-threshold table
+    corrections.csv    sourced fixes to catalogue values
 scripts/
   build_catalogue.py   regenerate data/openngc.csv from upstream
 ```
@@ -326,7 +335,7 @@ data files from 0.6 onward.
 | Release | Scope | Done when |
 |---|---|---|
 | **0.2 – optics & sky** | `Eyepiece`, exit pupil, TFOV, max useful magnification, Dawes limit; `Site` with Bortle/SQM → NELM; sky-aware star limit | `maglimit scope ...` prints a correct scope summary |
-| **0.3 – catalogue & visibility** | bundled OpenNGC, name lookup, surface brightness, Clark/Blackwell model, `explain()` | `maglimit check M33 --bortle 7` gives a sensible graded verdict with numbers |
+| **0.3 – catalogue & visibility** | bundled OpenNGC, name lookup, surface brightness, Crumey (2014) model, `explain()` | `maglimit check M33 --bortle 7` gives a sensible graded verdict with numbers |
 | **0.4 – tonight** | ephemeris, darkness window, extinction, Moon penalty, ranking, `tonight()` + CLI | `maglimit tonight ...` ranks a believable list in < 2 s |
 | **0.5 – notebook & data** | `_repr_html_`, `to_dict()`/JSON, `maglimit[notebook]` sliders, tutorial rewrite, docs on the model | a notebook re-ranks live; every printed number is documented |
 | **0.6 – web export** | `export_web_data.py`: catalogue JSON, threshold table, conformance file | the files validate against the schema and regenerate cleanly |
@@ -351,8 +360,8 @@ Concept posts 1–6 (see the handoff) don't need the tool, so they can start any
 
 ## 10. Risks
 
-- **Model calibration** is the hard part and the real value. The Blackwell/Clark approach
-  is well established but individual eyes vary by ±0.5 mag or more; we should present
+- **Model calibration** is the hard part and the real value. The Blackwell-based approach
+  (Crumey 2014) is well established but individual eyes vary by ±0.5 mag or more; we should present
   ranges, not precise predictions.
 - **Catalogue data quality** (inconsistent magnitudes between sources, as in M31: V 3.44 in
   OpenNGC vs 4.36 from NED). Prefer V, fall back to B with a colour correction, flag it.

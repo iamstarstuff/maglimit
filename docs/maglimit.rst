@@ -17,3 +17,21 @@ Observing Site
 
 .. automodule:: maglimit.site
     :members:
+
+Object Catalogue
+================
+
+.. automodule:: maglimit.catalogue
+    :members:
+
+Visibility Model
+================
+
+.. automodule:: maglimit.visibility
+    :members:
+
+Planner
+=======
+
+.. automodule:: maglimit.planner
+    :members:
