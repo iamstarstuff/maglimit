@@ -60,6 +60,23 @@ def surface_brightness(magnitude, major, minor):
     return magnitude + 2.5*math.log10(math.pi/4*major*minor*3600)
 
 
+def used_aperture(aperture, magnification, eye_pupil):
+    """Calculates the part of the aperture whose light gets into the eye
+
+    When the exit pupil is wider than the eye's pupil, the outer light is lost,
+    as if the telescope were smaller.
+
+    Args:
+        aperture: telescope aperture in mm
+        magnification: telescope magnification
+        eye_pupil: diameter of the observer's pupil in mm
+
+    Returns:
+        Effective aperture in mm
+    """
+    return aperture*min(1.0, eye_pupil/(aperture/magnification))
+
+
 def _adaptation(aperture, magnification, sqm, eye_pupil, throughput):
     """Returns the exit pupil terms and the background seen in the eyepiece (Eq. 66)
     """
