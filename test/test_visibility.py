@@ -3,6 +3,9 @@ import math
 import pytest
 
 from maglimit.visibility import (
+    airmass,
+    extinction,
+    moon_sky_brightness,
     sky_luminance,
     star_limit,
     surface_brightness,
@@ -83,3 +86,57 @@ def test_verdict_bands(margin, expected):
     """Test the verdict for margins on each side of the band edges.
     """
     assert verdict(margin) == expected
+
+
+def test_airmass_kasten_young():
+    """Test airmass against Kasten and Young (1989) values.
+    """
+    assert airmass(90) == pytest.approx(1.0, abs=1e-3)
+    assert airmass(30) == pytest.approx(1.9943, abs=1e-3)
+    assert airmass(20) == pytest.approx(2.9031, abs=1e-3)
+
+
+def test_airmass_rejects_objects_below_horizon():
+    """Test that airmass refuses an altitude at or below the horizon.
+    """
+    with pytest.raises(ValueError):
+        airmass(0)
+
+
+def test_extinction_is_relative_to_zenith():
+    """Test that extinction is zero overhead and 0.476 mag at 20 degrees.
+    """
+    assert extinction(90) == 0.0
+    assert extinction(20) == pytest.approx(0.476, abs=1e-3)
+
+
+def test_lower_never_dims_less():
+    """Test that a lower object is never dimmed less than a higher one.
+    """
+    values = [extinction(a) for a in range(5, 91)]
+    assert values == sorted(values, reverse=True)
+
+
+@pytest.mark.parametrize(("illumination", "separation", "expected"),
+                         [(1.0, 90, 19.794), (1.0, 30, 18.602), (0.1, 60, 21.012)])
+def test_moon_sky_brightness(illumination, separation, expected):
+    """Test the moonlit sky over a Bortle 3 site against hand-worked values.
+    """
+    sky = moon_sky_brightness(21.7, illumination, separation, 40)
+    assert sky == pytest.approx(expected, abs=1e-3)
+
+
+def test_moon_below_horizon_leaves_sky_alone():
+    """Test that a set Moon or a new Moon doesn't change the sky.
+    """
+    assert moon_sky_brightness(21.7, 1.0, 30, -5) == 21.7
+    assert moon_sky_brightness(21.7, 0.0, 30, 40) == 21.7
+
+
+def test_brighter_or_closer_moon_never_darkens_sky():
+    """Test that more illumination or a smaller separation never darkens the sky.
+    """
+    by_phase = [moon_sky_brightness(20.0, k/10, 45, 30) for k in range(1, 11)]
+    by_distance = [moon_sky_brightness(20.0, 0.8, s, 30) for s in range(0, 181, 10)]
+    assert by_phase == sorted(by_phase, reverse=True)
+    assert by_distance == sorted(by_distance)
