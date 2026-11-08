@@ -82,19 +82,19 @@ def test_sky_limit_values():
     """Test the sky-aware star limit under dark and bright skies.
     """
     scope = Telescope(200, 5)
-    assert scope.sky_lim_mag(Site(sqm=22)) == pytest.approx(13.77)
-    assert scope.sky_lim_mag(Site(sqm=18)) == pytest.approx(11.21)
-    assert scope.sky_lim_mag(Site(sqm=22), eyepiece=10) == pytest.approx(14.55)
-    assert scope.sky_lim_mag(Site(sqm=18), eyepiece=5) == pytest.approx(13.86)
-    assert scope.sky_lim_mag(Site(sqm=20), eyepiece=16) == pytest.approx(13.64)
-    assert Telescope(100, 5).sky_lim_mag(Site(sqm=22)) == pytest.approx(12.26)
+    assert scope.sky_lim_mag(Site(sqm=22)) == pytest.approx(13.01)
+    assert scope.sky_lim_mag(Site(sqm=18)) == pytest.approx(11.63)
+    assert scope.sky_lim_mag(Site(sqm=22), eyepiece=10) == pytest.approx(14.21)
+    assert scope.sky_lim_mag(Site(sqm=18), eyepiece=5) == pytest.approx(13.11)
+    assert scope.sky_lim_mag(Site(sqm=20), eyepiece=16) == pytest.approx(12.89)
+    assert Telescope(100, 5).sky_lim_mag(Site(sqm=22)) == pytest.approx(11.51)
 
 
 def test_obstruction_costs_light():
     """Test that a central obstruction lowers the star limit.
     """
     scope = Telescope(200, 5, obstruction=0.3)
-    assert scope.sky_lim_mag(Site(sqm=20)) == pytest.approx(12.66)
+    assert scope.sky_lim_mag(Site(sqm=20)) == pytest.approx(12.17)
 
 
 def test_exit_pupil_larger_than_eye_lowers_the_limit():
@@ -107,7 +107,7 @@ def test_exit_pupil_larger_than_eye_lowers_the_limit():
 def test_tiny_aperture_stays_sensible():
     """Test an aperture smaller than the eye's pupil.
     """
-    assert Telescope(5, 5).sky_lim_mag(Site(sqm=22)) == pytest.approx(5.76)
+    assert Telescope(5, 5).sky_lim_mag(Site(sqm=22)) == pytest.approx(5.0)
 
 
 def test_more_aperture_never_hurts():
@@ -124,6 +124,20 @@ def test_darker_sky_never_hurts():
     scope = Telescope(200, 5)
     limits = [scope.sky_lim_mag(Site(bortle=b), eyepiece=10) for b in range(9, 0, -1)]
     assert limits == sorted(limits)
+
+
+def test_throughput_includes_obstruction():
+    """Test the fraction of light passed by an obstructed telescope.
+    """
+    assert Telescope(200, 5, obstruction=0.3).throughput() == pytest.approx(0.728)
+
+
+def test_used_aperture():
+    """Test that an exit pupil wider than the eye uses less of the aperture.
+    """
+    from maglimit.visibility import used_aperture
+    assert used_aperture(200, 25, 5) == pytest.approx(125)
+    assert used_aperture(200, 100, 5) == pytest.approx(200)
 
 
 def test_lim_mag_is_unchanged():
@@ -167,15 +181,15 @@ def test_eye_pupil_does_not_matter_when_exit_pupil_fits():
     """Test that all the light reaches any eye wider than the exit pupil.
     """
     scope, site = Telescope(200, 5), Site(sqm=20)
-    assert [scope.sky_lim_mag(site, 10, p) for p in (3, 5, 7)] == [14.05, 14.05, 14.05]
+    assert [scope.sky_lim_mag(site, 10, p) for p in (3, 5, 7)] == [13.32, 13.32, 13.32]
 
 
 def test_smaller_eye_pupil_loses_light_from_wide_exit_pupil():
     """Test that a smaller eye gets a lower limit when the exit pupil overfills it.
     """
     scope, site = Telescope(200, 5), Site(sqm=20)
-    assert [scope.sky_lim_mag(site, 40, p) for p in (3, 5, 7)] == [11.57, 12.12, 12.40]
-    assert [scope.sky_lim_mag(site, 32, p) for p in (3, 5, 7)] == [12.05, 12.60, 12.82]
+    assert [scope.sky_lim_mag(site, 40, p) for p in (3, 5, 7)] == [10.82, 11.48, 11.94]
+    assert [scope.sky_lim_mag(site, 32, p) for p in (3, 5, 7)] == [11.30, 11.97, 12.30]
 
 
 def test_methods_return_plain_floats():
@@ -195,3 +209,11 @@ def test_summary_with_numpy_inputs_is_json_safe():
     """
     scope = Telescope(np.float32(200), np.int64(5), [np.int64(10)])
     json.dumps(scope.summary(Site(sqm=np.float32(20))))
+
+
+def test_smaller_eye_pupil_never_raises_low_power_limit():
+    """Test that with no eyepiece given, a smaller eye never sees fainter stars.
+    """
+    scope, site = Telescope(200, 5), Site(sqm=21.5)
+    limits = [scope.sky_lim_mag(site, eye_pupil=p) for p in (1, 3, 5, 7, 10)]
+    assert limits == sorted(limits)

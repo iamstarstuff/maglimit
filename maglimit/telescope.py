@@ -4,9 +4,10 @@ from dataclasses import dataclass
 import astropy.units as u
 import numpy as np
 
-from .site import naked_eye_limit
+from .visibility import star_limit, used_aperture
 
-# naked_eye_limit() describes a fully dark-adapted eye with a pupil of this size in mm
+# The visibility model is always called with this pupil; a smaller eye is modelled
+# by cutting the aperture to what it can use (see visibility.used_aperture)
 NAKED_EYE_PUPIL = 7.0
 
 
@@ -175,32 +176,40 @@ class Telescope:
         """
         return float(np.round(2 + 5*np.log10(self._aperture_mm()), 2))
 
-    def sky_lim_mag(self, site, eyepiece=None, eye_pupil=7.0):
+    def throughput(self):
+        """Calculates the fraction of light the telescope passes to the eye
+
+        Returns:
+            Transmission times the unobstructed fraction of the aperture
+        """
+        return self.transmission*(1 - self.obstruction**2)
+
+    def sky_lim_mag(self, site, eyepiece=None, eye_pupil=7.0, field_factor=2.0):
         """Estimates the faintest star visible from a site, taking the sky into account
 
-        A simplified model after Schaefer (1990). The eyepiece dims the sky background,
-        so the eye works as if under a darker sky, and the star gains all the light the
-        aperture collects. Light in an exit pupil wider than the eye is lost.
+        Uses Crumey's (2014) contrast-threshold model (see maglimit.visibility).
+        Light in an exit pupil wider than the observer's eye is lost.
 
         Args:
             site: Site the telescope is used at
             eyepiece: focal length of eyepiece in mm or an Eyepiece. If None, assumes low
-                power, with the exit pupil matching the eye
+                power, with a 7 mm exit pupil
             eye_pupil: diameter of the observer's dark-adapted pupil in mm
+            field_factor: Crumey's factor between laboratory and field thresholds
 
         Returns:
             Limiting magnitude, rounded to 2 decimals
         """
         _check_eye_pupil(eye_pupil)
-        throughput = self.transmission*(1 - self.obstruction**2)
-        exit_pupil = eye_pupil
-        if eyepiece is not None:
-            exit_pupil = _as_eyepiece(eyepiece).focal_length/self.fstop
-        used_aperture = self._aperture_mm()*min(1, eye_pupil/exit_pupil)
-        exit_pupil = min(exit_pupil, eye_pupil)
-        sky = site.sqm - 2.5*math.log10(throughput*(exit_pupil/NAKED_EYE_PUPIL)**2)
-        gain = 2.5*math.log10(throughput*used_aperture**2/NAKED_EYE_PUPIL**2)
-        return round(naked_eye_limit(sky) + gain, 2)
+        aperture = self._aperture_mm()
+        if eyepiece is None:
+            # Low power: a 7 mm exit pupil for every observer, so a smaller eye only loses light
+            magnification = aperture/NAKED_EYE_PUPIL
+        else:
+            magnification = self._magnification(_as_eyepiece(eyepiece))
+        limit = star_limit(used_aperture(aperture, magnification, eye_pupil), magnification,
+                           float(site.sqm), NAKED_EYE_PUPIL, self.throughput(), field_factor)
+        return round(limit, 2)
 
     def summary(self, site=None, eye_pupil=7.0):
         """Collects the telescope's numbers as plain data

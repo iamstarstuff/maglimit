@@ -68,3 +68,48 @@ def test_no_command_shows_help(capsys):
     with pytest.raises(SystemExit) as exit_info:
         main([])
     assert exit_info.value.code == 2
+
+
+def test_check_prints_verdict(capsys):
+    """Test the check command's text output.
+    """
+    assert main(["check", "M33", "--aperture", "200", "--fstop", "5", "--bortle", "7"]) == 0
+    out = capsys.readouterr().out
+    assert "M33" in out or "NGC 598" in out
+    assert "Verdict:" in out and "mag/arcsec" in out
+
+
+def test_check_shows_low_confidence(capsys):
+    """Test that a nebula's answer is marked low confidence.
+    """
+    main(["check", "NGC 7000", "--aperture", "200", "--fstop", "5", "--bortle", "5"])
+    assert "Low confidence" in capsys.readouterr().out
+
+
+def test_check_json(capsys):
+    """Test the check command's JSON output.
+    """
+    main(["check", "M57", "--aperture", "200", "--fstop", "5", "--sqm", "20", "--json"])
+    assert json.loads(capsys.readouterr().out)["verdict"] == "easy"
+
+
+@pytest.mark.parametrize("args", [
+    ["M33", "--aperture", "200", "--fstop", "5"],
+    ["M311", "--aperture", "200", "--fstop", "5", "--bortle", "5"],
+])
+def test_check_bad_input_exits_cleanly(args, capsys):
+    """Test that a missing sky or an unknown object gives a clean error.
+    """
+    with pytest.raises(SystemExit) as exit_info:
+        main(["check", *args])
+    assert exit_info.value.code == 2
+    assert "error" in capsys.readouterr().err
+
+
+def test_check_needs_no_network(monkeypatch, capsys):
+    """Test that check works without network access.
+    """
+    def no_network(*args, **kwargs):
+        raise AssertionError("tried to use the network")
+    monkeypatch.setattr(socket.socket, "connect", no_network)
+    assert main(["check", "M33", "--aperture", "200", "--fstop", "5", "--bortle", "7"]) == 0
