@@ -1,6 +1,6 @@
 [project]
 name = "maglimit"
-version = "0.3.0"
+version = "0.4.0"
 description = "Determine whether an astronomical object is observable with a given telescope"
 readme = "README.md"
 license = "MIT"
