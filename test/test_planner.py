@@ -2,6 +2,8 @@ import json
 import re
 import time
 from dataclasses import replace
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -194,3 +196,39 @@ def test_tonight_is_fast(plan):
     start = time.perf_counter()
     tonight(SCOPE, PUNE, **NIGHT)
     assert time.perf_counter() - start < 2.0
+
+
+def test_running_night_drops_past_samples(monkeypatch):
+    """Test that planning at 02:00 with no date only uses the rest of the night.
+    """
+    now = datetime(2026, 11, 2, 2, 0, tzinfo=ZoneInfo("Asia/Kolkata"))
+    monkeypatch.setattr(planner, "_now", lambda zone: now)
+    rest = tonight(SCOPE, PUNE, tz="Asia/Kolkata")
+    assert rest.meta["date"] == "2026-11-01"
+    assert rest.meta["dark_start"] >= now
+    assert all(t.to_datetime(timezone=now.tzinfo) >= now for t in rest["best_time"])
+
+
+def test_ended_night_is_a_clear_error(monkeypatch):
+    """Test that planning after dawn but before noon says darkness has ended.
+    """
+    now = datetime(2026, 11, 2, 7, 0, tzinfo=ZoneInfo("Asia/Kolkata"))
+    monkeypatch.setattr(planner, "_now", lambda zone: now)
+    with pytest.raises(ValueError, match="darkness has ended"):
+        tonight(SCOPE, PUNE, tz="Asia/Kolkata")
+
+
+def test_system_zone_uses_tz_variable(monkeypatch):
+    """Test that the system zone keeps its IANA name from TZ, so DST is followed.
+    """
+    monkeypatch.setenv("TZ", "Europe/London")
+    assert planner._zone(None) == ZoneInfo("Europe/London")
+
+
+def test_rounded_zero_margin_is_visible():
+    """Test that hidden rows are all not visible and listed rows never are.
+    """
+    full = tonight(SCOPE, PUNE, limit=20, show_hidden=True, **NIGHT)
+    listed, hidden = full[:20], full[20:]
+    assert all(v != "not visible" for v in listed["verdict"])
+    assert all(v == "not visible" for v in hidden["verdict"])

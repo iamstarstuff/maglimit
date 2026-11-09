@@ -2,9 +2,11 @@
 """
 import functools
 import math
+import os
 from datetime import date as date_type
 from datetime import datetime
-from zoneinfo import ZoneInfo
+from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import astropy.units as u
 import numpy as np
@@ -189,21 +191,46 @@ def _listable():
     return objects, np.array([o.ra for o in objects]), np.array([o.dec for o in objects])
 
 
+def _system_zone():
+    """Returns the system's time zone, by IANA name where it can be found
+
+    Tries the TZ variable, then the /etc/localtime link, so daylight saving is
+    followed; falls back to the current fixed UTC offset.
+    """
+    candidates = [os.environ.get("TZ", "").lstrip(":")]
+    try:
+        link = str(Path("/etc/localtime").resolve())
+        candidates.append(link.split("zoneinfo/", 1)[1] if "zoneinfo/" in link else "")
+    except OSError:
+        pass
+    for key in candidates:
+        if key:
+            try:
+                return ZoneInfo(key)
+            except (ZoneInfoNotFoundError, ValueError):
+                continue
+    return datetime.now().astimezone().tzinfo
+
+
 def _zone(tz):
     """Returns a tzinfo for an IANA name, a tzinfo, or None for the system's zone
     """
     if tz is None:
-        local = datetime.now().astimezone().tzinfo
-        key = getattr(local, "key", None)
-        return ZoneInfo(key) if key else local
+        return _system_zone()
     return ZoneInfo(tz) if isinstance(tz, str) else tz
+
+
+def _now(zone):
+    """Returns the current time in a zone
+    """
+    return datetime.now(zone)
 
 
 def _night_date(date, zone):
     """Returns the date a plan is for, from None, a date or an ISO string
     """
     if date is None:
-        return tonight_date(datetime.now(zone))
+        return tonight_date(_now(zone))
     if isinstance(date, date_type):
         return date
     try:
@@ -270,6 +297,11 @@ def tonight(telescope, site, date=None, tz=None, types=None, goal="easy", limit=
     zone = _zone(tz)
     day = _night_date(date, zone)
     dark = night(site, day, zone, sun_altitude=sun_altitude)
+    if date is None:
+        dark = dark.after(_now(zone))
+        if dark is None:
+            raise ValueError(f"darkness has ended for the night of {day.isoformat()}; "
+                             "give a date to plan another night")
 
     objects, ra, dec = _listable()
     keep = np.array([allowed is None or o.type in allowed for o in objects])
@@ -299,7 +331,10 @@ def tonight(telescope, site, date=None, tz=None, types=None, goal="easy", limit=
                                extinction(altitude))
             if best is None or assessed[0] > best[0][0]:
                 best = (assessed, sample, altitude, sky, separation if moon_alt > 0 else None)
-        results.append((obj, *best))
+        # Round before splitting visible from hidden, as verdicts are graded on the
+        # rounded margin; adding 0.0 turns -0.0 into 0.0
+        assessed, *rest = best
+        results.append((obj, (round(assessed[0], 2) + 0.0, *assessed[1:]), *rest))
 
     def score(result):
         obj, (margin, *_), _, altitude, *_ = result

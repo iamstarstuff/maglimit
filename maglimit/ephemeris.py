@@ -7,7 +7,7 @@ same formulas port to other languages.
 """
 import contextlib
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, time, timedelta, timezone
 
 import astropy.units as u
@@ -111,6 +111,26 @@ class Night:
     moon_illumination: np.ndarray
     tz: object
 
+    def after(self, moment):
+        """Returns the part of the night from moment on
+
+        Args:
+            moment: aware datetime
+
+        Returns:
+            Night, or None if darkness has ended by then
+        """
+        with offline_iers():
+            keep = self.times >= Time(moment)
+        if not keep.any():
+            return None
+        return replace(
+            self, times=self.times[keep], dark_start=max(self.dark_start, moment),
+            lst=self.lst[keep], moon_ra=self.moon_ra[keep], moon_dec=self.moon_dec[keep],
+            moon_altitude=self.moon_altitude[keep],
+            moon_illumination=self.moon_illumination[keep],
+        )
+
 
 def _crossing(times, sun, before, after, sun_altitude):
     """Interpolates when the Sun crosses sun_altitude between two samples
@@ -122,7 +142,9 @@ def _crossing(times, sun, before, after, sun_altitude):
 def night(site, date, tz, sun_altitude=-18.0, step_minutes=10):
     """Samples the dark part of the night starting on a local date
 
-    Samples run from local noon on date to noon the next day.
+    Samples run from local solar noon at the site on date to solar noon the next day,
+    so the night is the site's own whatever zone tz is; tz only names the date's zone
+    for the result.
 
     Args:
         site: Site with lat and lon
@@ -140,7 +162,8 @@ def night(site, date, tz, sun_altitude=-18.0, step_minutes=10):
     if site.lat is None or site.lon is None:
         raise ValueError("the site needs lat and lon to plan a night")
     with offline_iers():
-        noon = datetime.combine(date, time(12), tzinfo=tz).astimezone(timezone.utc)
+        noon = (datetime.combine(date, time(12), tzinfo=timezone.utc)
+                - timedelta(hours=site.lon/15))
         steps = 24*60//step_minutes
         times = Time([noon + timedelta(minutes=step_minutes*i) for i in range(steps + 1)])
         location = EarthLocation(lat=site.lat*u.deg, lon=site.lon*u.deg,

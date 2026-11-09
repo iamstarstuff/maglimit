@@ -74,6 +74,37 @@ From the command line, for a summary of a telescope and its eyepieces:
 maglimit scope --aperture 200 --fstop 5 --eyepieces 32,25,10 --bortle 5
 ```
 
+To plan a night from Pune (times are local; without `--tz` maglimit uses the system's time zone, and without `--date` it plans tonight):
+
+```bash
+maglimit tonight --aperture 200 --fstop 5 --eyepieces 32,25,10 --lat 18.5 --lon 73.9 --bortle 5 --limit 6 --date 2026-11-01 --tz Asia/Kolkata
+```
+
+```
+Tonight (2026-11-01), Bortle 5 (SQM ~20.0), dark from 19:15 to 05:20
+200 mm f/5, star limit ~12.23
+Moon: 50% lit
+
+ #  Object  Type            Mag  Size        Best   Alt  Eyepiece   Verdict
+ 1  M31     Galaxy          3.4  178'x69.7'  22:34  67°  32 mm 31x  easy (core only)
+ 2  M42     Cluster+nebula  4.0  90'x60'     00:04  35°  32 mm 31x  easy (core only)
+ 3  M47     Open cluster    4.4  19.8'       05:14  57°  32 mm 31x  easy *
+ 4  M41     Open cluster    4.5  12'         04:34  51°  32 mm 31x  easy *
+ 5  M39     Open cluster    4.6  19.5'       19:24  60°  32 mm 31x  easy
+ 6  M25     Open cluster    4.6  14.1'       19:24  32°  32 mm 31x  easy
+* low confidence; use maglimit check NAME for reasons
+Not shown: 6265 objects up but below threshold (use --show-hidden)
+```
+
+In Python, `tonight()` returns an astropy table:
+
+```python
+scope = ml.Telescope(200, 5, eyepieces=[32, 25, 10])
+site = ml.Site(lat=18.5, lon=73.9, bortle=5)
+plan = ml.tonight(scope, site, date="2026-11-01", tz="Asia/Kolkata", types=["galaxy", "pn"])
+plan["name", "verdict", "best_time", "altitude"]
+```
+
 To check one object, with no network needed:
 
 ```bash
@@ -90,37 +121,6 @@ cd maglimit
 uv sync --all-groups
 uv run pytest                     # add -m "not network" to skip the live NED test
 uv run sphinx-build -b html docs docs/_build/html
-```
-
-To plan a night from Pune (times are local; without `--tz` maglimit uses the system's time zone, and without `--date` it plans tonight):
-
-```bash
-maglimit tonight --aperture 200 --fstop 5 --eyepieces 32,25,10 --lat 18.5 --lon 73.9 --bortle 5 --limit 6 --date 2026-11-01 --tz Asia/Kolkata
-```
-
-```
-Tonight (2026-11-01), Bortle 5 (SQM ~20.0), dark from 19:15 to 05:20
-200 mm f/5, star limit ~12.23
-Moon: 50% lit
-
- #  Object  Type            Mag  Size        Best   Alt  Eyepiece   Verdict
- 1  M31     Galaxy          3.4  178'x69.7'  22:30  67°  32 mm 31x  easy (core only)
- 2  M42     Cluster+nebula  4.0  90'x60'     00:10  36°  32 mm 31x  easy (core only)
- 3  M47     Open cluster    4.4  19.8'       05:20  57°  32 mm 31x  easy *
- 4  M41     Open cluster    4.5  12'         04:40  51°  32 mm 31x  easy *
- 5  M39     Open cluster    4.6  19.5'       19:20  60°  32 mm 31x  easy
- 6  M25     Open cluster    4.6  14.1'       19:20  32°  32 mm 31x  easy
-* low confidence; use maglimit check NAME for reasons
-Not shown: 6434 objects up but below threshold (use --show-hidden)
-```
-
-In Python, `tonight()` returns an astropy table:
-
-```python
-scope = ml.Telescope(200, 5, eyepieces=[32, 25, 10])
-site = ml.Site(lat=18.5, lon=73.9, bortle=5)
-plan = ml.tonight(scope, site, date="2026-11-01", tz="Asia/Kolkata", types=["galaxy", "pn"])
-plan["name", "verdict", "best_time", "altitude"]
 ```
 
 Releases are published to PyPI from GitHub releases via trusted publishing (see `.github/workflows/publish.yml`).

@@ -97,3 +97,14 @@ def test_night_never_downloads(monkeypatch):
     monkeypatch.setattr("astropy.utils.data.download_file", refuse)
     monkeypatch.setattr("astropy.utils.iers.IERS_Auto.iers_table", None)
     night(PUNE, date(2031, 1, 10), KOLKATA_TZ)
+
+
+def test_night_follows_the_site_not_the_clock():
+    """Test that a Chilean night is the same instants whether shown in Chile or India time.
+    """
+    chile = Site(lat=-30.2, lon=-70.7, bortle=2)
+    there = night(chile, date(2026, 11, 1), ZoneInfo("America/Santiago"))
+    here = night(chile, date(2026, 11, 1), KOLKATA_TZ)
+    assert abs(here.dark_start - there.dark_start) < timedelta(minutes=1)
+    assert abs(here.dark_end - there.dark_end) < timedelta(minutes=1)
+    assert here.dark_end - here.dark_start < timedelta(hours=12)
