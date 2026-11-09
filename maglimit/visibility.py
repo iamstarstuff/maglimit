@@ -18,6 +18,7 @@ Arguments shared by the functions:
   and models a smaller eye with used_aperture()
 - throughput: fraction of light the telescope passes (1/Ft in the paper)
 - field_factor: Crumey's F, the factor between laboratory and field thresholds
+- altitude, moon_altitude: height above the horizon in degrees
 """
 import math
 
@@ -31,6 +32,13 @@ K1, K2 = 7.633e-3, -7.174e-3
 Q = 0.6
 # Below this background in cd/m² thresholds no longer improve (zero-background cut-off)
 CUT_OFF = 1e-5
+
+# Extinction in V, magnitudes per airmass
+EXTINCTION_K = 0.25
+# Sky brightness a full Moon adds next to it, in mag/arcsec², and how much fainter that
+# light is 90 degrees or more away (a simple estimate, not Krisciunas & Schaefer 1991)
+MOON_FULL_SKY = 18.0
+MOON_DISTANCE_GAIN = 2.0
 
 VERDICT_BANDS = ((2.0, "easy"), (1.0, "moderate"), (0.5, "challenging"), (0.0, "very hard"))
 
@@ -140,3 +148,56 @@ def verdict(margin):
         if margin >= edge:
             return label
     return "not visible"
+
+
+def airmass(altitude):
+    """Calculates the airmass at an altitude, after Kasten and Young (1989)
+
+    Kasten, F. and Young, A. T. (1989), "Revised optical air mass tables and
+    approximation formula", Applied Optics 28, 4735.
+
+    Returns:
+        Airmass, 1 at the zenith
+
+    Raises:
+        ValueError: if the altitude is at or below the horizon
+    """
+    if altitude <= 0:
+        raise ValueError(f"altitude must be above the horizon, got {altitude}")
+    return 1/(math.sin(math.radians(altitude)) + 0.50572*(altitude + 6.07995)**-1.6364)
+
+
+def extinction(altitude, k=EXTINCTION_K):
+    """Calculates how much more the atmosphere dims an object than at the zenith
+
+    The visibility model is calibrated at the zenith, so this is the extra
+    dimming, k·(airmass − 1).
+
+    Args:
+        k: extinction coefficient in magnitudes per airmass
+
+    Returns:
+        Extra dimming in magnitudes
+    """
+    return max(0.0, k*(airmass(altitude) - 1))
+
+
+def moon_sky_brightness(sqm, illumination, separation, moon_altitude):
+    """Estimates the sky brightness with moonlight added
+
+    A simple estimate: a full Moon adds MOON_FULL_SKY mag/arcsec² next to it,
+    fading by MOON_DISTANCE_GAIN magnitudes out to 90 degrees, and scaled by the
+    illuminated fraction. The moonlight adds to the sky as light, not magnitudes.
+
+    Args:
+        illumination: illuminated fraction of the Moon, 0 to 1
+        separation: angle between the Moon and the object in degrees
+
+    Returns:
+        Sky brightness in mag/arcsec²
+    """
+    if moon_altitude <= 0 or illumination <= 0:
+        return sqm
+    moon = (MOON_FULL_SKY - 2.5*math.log10(illumination)
+            + MOON_DISTANCE_GAIN*min(separation, 90)/90)
+    return -2.5*math.log10(10**(-0.4*sqm) + 10**(-0.4*moon))

@@ -24,6 +24,12 @@ Object Catalogue
 .. automodule:: maglimit.catalogue
     :members:
 
+Ephemeris
+=========
+
+.. automodule:: maglimit.ephemeris
+    :members:
+
 Visibility Model
 ================
 

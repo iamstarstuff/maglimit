@@ -113,3 +113,54 @@ def test_check_needs_no_network(monkeypatch, capsys):
         raise AssertionError("tried to use the network")
     monkeypatch.setattr(socket.socket, "connect", no_network)
     assert main(["check", "M33", "--aperture", "200", "--fstop", "5", "--bortle", "7"]) == 0
+
+
+TONIGHT_ARGS = ["tonight", "--aperture", "200", "--fstop", "5", "--eyepieces", "32,25,10",
+                "--bortle", "5", "--lat", "18.5", "--lon", "73.9", "--date", "2026-11-01",
+                "--tz", "Asia/Kolkata"]
+
+
+def test_tonight_prints_a_ranked_table(capsys):
+    """Test that maglimit tonight prints the night header and a ranked list.
+    """
+    assert main(TONIGHT_ARGS) == 0
+    out = capsys.readouterr().out
+    assert out.startswith("Tonight (2026-11-01), Bortle 5 (SQM ~20.0), dark from 19:1")
+    assert "Moon: 50% lit" in out
+    assert " 1  " in out and "Not shown:" in out
+
+
+def test_tonight_json(capsys):
+    """Test that --json prints the meta and objects as valid JSON.
+    """
+    main(TONIGHT_ARGS + ["--json", "--limit", "3"])
+    data = json.loads(capsys.readouterr().out)
+    assert len(data["objects"]) == 3
+    assert data["meta"]["date"] == "2026-11-01"
+
+
+def test_tonight_needs_a_location(capsys):
+    """Test that tonight without --lat and --lon exits with a usage error.
+    """
+    with pytest.raises(SystemExit) as exit_info:
+        main(["tonight", "--aperture", "200", "--fstop", "5", "--bortle", "5"])
+    assert exit_info.value.code == 2
+
+
+@pytest.mark.parametrize("extra", [["--tz", "Mars/Olympus"], ["--types", "quasar"],
+                                   ["--goal", "pretty"]])
+def test_tonight_bad_options_are_clean_errors(extra, capsys):
+    """Test that a bad time zone, type group or goal gives exit code 2, not a traceback.
+    """
+    with pytest.raises(SystemExit) as exit_info:
+        main(TONIGHT_ARGS + extra)
+    assert exit_info.value.code == 2
+
+
+def test_tonight_without_darkness_is_a_clean_error(capsys):
+    """Test that London at midsummer gives a usage error suggesting --sun-altitude.
+    """
+    with pytest.raises(SystemExit):
+        main(["tonight", "--aperture", "200", "--fstop", "5", "--bortle", "5", "--lat", "51.48",
+              "--lon", "0", "--date", "2026-06-21", "--tz", "Europe/London"])
+    assert "sun" in capsys.readouterr().err

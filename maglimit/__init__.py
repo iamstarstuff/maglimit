@@ -2,7 +2,7 @@ from importlib.metadata import version
 
 from .catalogue import CatalogueObject, find_object
 from .limiting_mag import is_object_observable, object_magnitude, smallest_scope
-from .planner import explain
+from .planner import explain, tonight
 from .site import Site, bortle_to_sqm, naked_eye_limit
 from .telescope import Eyepiece, Telescope
 
@@ -20,4 +20,5 @@ __all__ = [
     "naked_eye_limit",
     "object_magnitude",
     "smallest_scope",
+    "tonight",
 ]

@@ -136,7 +136,7 @@ ml.explain("NGC 891", scope, site)   # the numbers behind one verdict
 (`maglimit[notebook]`, ipywidgets) adds aperture / Bortle sliders that re-rank the list live,
 which doubles as a teaching demo and a prototype of the website UI.
 
-**(decide)** CLI and Python units: mm for aperture/eyepieces (as today), degrees for
+CLI and Python units (settled in 0.4): mm for aperture/eyepieces (as today), degrees for
 lat/lon, local time zone guessed from the system with `--tz` to override.
 
 ## 5. How it works
@@ -173,6 +173,17 @@ lat/lon, local time zone guessed from the system with `--tz` to override.
   to the data, not our code).
 
 ### 5.3 Where and when (ephemeris)
+
+> **Changed on 2026-11-08 (release 0.4 plan):** object altitudes come from plain numpy over
+> the catalogue's J2000 coordinates (about 0.2° off, and portable), with astropy used only for
+> the Sun, the Moon and sidereal time. Extinction is `k·(X − 1)`, the extra dimming compared
+> with the zenith where the visibility model is calibrated, with Kasten & Young (1989)
+> airmass. The Moon adds sky brightness `18.0 − 2.5·log10(k) + 2.0·min(s, 90°)/90°`
+> mag/arcsec² (k illuminated fraction, s separation) while it's up, and each object is judged
+> at its highest point and at its highest point after moonset, whichever is better. The easy
+> ranking is by verdict band, then Messier objects, then brightness, since raw margins favour
+> tiny objects over showpieces. Dates are the local date a night starts; before noon,
+> "tonight" is the night still running.
 
 Plain **astropy** (`EarthLocation`, `AltAz`, `get_sun`, `get_body("moon")`) — no extra
 dependency; astroplan is an option but not needed for this.
@@ -383,5 +394,5 @@ Concept posts 1–6 (see the handoff) don't need the tool, so they can start any
 1. Where the tool lives on the site, and whether the post list in the handoff is complete.
    This can wait until the website work starts.
 
-Smaller **(decide)** items remain in §4 (units and time zone), §5.4 (name of the sky-aware
+Smaller **(decide)** items remain in §5.4 (name of the sky-aware
 limit) and §6 (NED as an optional extra); these can be settled during implementation.
